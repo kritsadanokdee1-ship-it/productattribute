@@ -81,12 +81,15 @@ def run_backtest(n_bars: int = 300, seed: int = 42) -> None:
         "portfolio_summary": result.portfolio_summary,
         "trade_analysis": result.trade_analysis,
         "risk_summary": result.risk_summary,
-        "equity_curve_last_10": result.equity_curve[-10:],
-        "recent_fills": result.fill_log[-20:],
+        "equity_curve": result.equity_curve,
+        "recent_fills": result.fill_log,
     }
     with open("backtest_results.json", "w") as f:
         json.dump(output, f, indent=2, default=str)
     print(f"\nDetailed results saved to backtest_results.json")
+
+    from trading.reporting import generate_html_report
+    generate_html_report("backtest_results.json", "trading_report.html")
 
 
 def run_live_demo(n_ticks: int = 50) -> None:

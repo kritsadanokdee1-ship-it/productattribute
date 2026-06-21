@@ -81,6 +81,9 @@ class MarketState:
             return bars[-1].close
         return None
 
+    def bar_count(self, symbol: str) -> int:
+        return len(self.bars.get(symbol, []))
+
     def get_bars(self, symbol: str, n: int = 100) -> List[Bar]:
         return self.bars.get(symbol, [])[-n:]
 

@@ -49,8 +49,7 @@ class MomentumStrategy(BaseStrategy):
         portfolio_value: float,
         current_position: float,
     ) -> List[Order]:
-        bars = market.get_bars(symbol, self.slow_ema + 10)
-        if len(bars) < self.config.min_bars:
+        if market.bar_count(symbol) < self.config.min_bars:
             return []
 
         fast = market.ema(symbol, self.fast_ema)

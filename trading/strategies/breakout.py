@@ -37,7 +37,8 @@ class BreakoutStrategy(BaseStrategy):
         return "DonchianBreakout"
 
     def _channel(self, market: MarketState, symbol: str, period: int) -> tuple[Optional[float], Optional[float]]:
-        bars = market.get_bars(symbol, period)
+        # Exclude the current (most recent) bar so price can break out of the channel
+        bars = market.get_bars(symbol, period + 1)[:-1]
         if len(bars) < period:
             return None, None
         return max(b.high for b in bars), min(b.low for b in bars)
@@ -49,8 +50,7 @@ class BreakoutStrategy(BaseStrategy):
         portfolio_value: float,
         current_position: float,
     ) -> List[Order]:
-        bars = market.get_bars(symbol, self.entry_period + 5)
-        if len(bars) < self.config.min_bars:
+        if market.bar_count(symbol) < self.config.min_bars:
             return []
 
         entry_high, entry_low = self._channel(market, symbol, self.entry_period)

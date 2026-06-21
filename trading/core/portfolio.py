@@ -53,11 +53,13 @@ class Portfolio:
         order.realized_pnl = realized
         order.filled_at = datetime.utcnow()
 
-        # Update cash: pay cost of buy or receive proceeds of sell
+        # Cash tracks real money: deduct cost on buy, receive proceeds on sell.
+        # realized PnL is NOT added here — it's captured by the two cash flows
+        # (entry cost already deducted, exit proceeds received separately).
         signed_cost = fill_price * fill_qty * (
             -1 if order.side == OrderSide.BUY else 1
         )
-        self.cash += signed_cost + realized - commission
+        self.cash += signed_cost - commission
         self._total_commission += commission
 
         return realized
@@ -72,14 +74,23 @@ class Portfolio:
     def realized_pnl(self) -> float:
         return sum(p.realized_pnl for p in self.positions.values())
 
+    def market_value(self, prices: Dict[str, float]) -> float:
+        """Mark-to-market value of all open positions."""
+        return sum(
+            pos.quantity * prices[sym]
+            for sym, pos in self.positions.items()
+            if not pos.is_flat and sym in prices
+        )
+
     def equity(self, prices: Dict[str, float]) -> float:
-        return self.cash + self.unrealized_pnl(prices)
+        # equity = cash (net of all buy/sell flows) + current market value of open positions
+        return self.cash + self.market_value(prices)
 
     def snapshot(self, prices: Dict[str, float], ts: Optional[datetime] = None) -> EquitySnapshot:
         ts = ts or datetime.utcnow()
         unreal = self.unrealized_pnl(prices)
         real = self.realized_pnl()
-        eq = self.cash + unreal
+        eq = self.equity(prices)
         self.peak_equity = max(self.peak_equity, eq)
         dd = (self.peak_equity - eq) / self.peak_equity if self.peak_equity > 0 else 0.0
         snap = EquitySnapshot(

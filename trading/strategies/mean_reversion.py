@@ -46,8 +46,7 @@ class MeanReversionStrategy(BaseStrategy):
         portfolio_value: float,
         current_position: float,
     ) -> List[Order]:
-        bars = market.get_bars(symbol, self.bb_period + 5)
-        if len(bars) < self.config.min_bars:
+        if market.bar_count(symbol) < self.config.min_bars:
             return []
 
         upper, mid, lower = market.bollinger(symbol, self.bb_period, self.bb_std)

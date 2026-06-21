@@ -48,10 +48,10 @@ class VWAPStrategy(BaseStrategy):
         portfolio_value: float,
         current_position: float,
     ) -> List[Order]:
-        bars = market.get_bars(symbol, self.vwap_period + self.volume_confirm_bars + 5)
-        if len(bars) < self.config.min_bars:
+        if market.bar_count(symbol) < self.config.min_bars:
             return []
 
+        bars = market.get_bars(symbol, self.vwap_period + self.volume_confirm_bars)
         vwap = market.vwap(symbol, self.vwap_period)
         price = market.last_price(symbol)
         if vwap is None or price is None:

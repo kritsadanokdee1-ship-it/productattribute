@@ -130,14 +130,18 @@ class OrderManager:
         ts: datetime,
         reason: str,
     ) -> None:
-        close_side = OrderSide.SELL if order.side == OrderSide.BUY else OrderSide.BUY
-        pnl = (close_price - order.fill_price) * order.fill_qty * (
-            1 if order.side == OrderSide.BUY else -1
-        )
+        direction = 1 if order.side == OrderSide.BUY else -1
         commission = close_price * order.fill_qty * self.commission_pct
-        pnl -= commission
+
+        # Closing a LONG means selling → receive close_price * qty.
+        # Closing a SHORT means buying → pay close_price * qty.
+        # Cash was deducted/credited by full value at entry, so credit full close proceeds here.
+        proceeds = direction * close_price * order.fill_qty
+        portfolio.cash += proceeds - commission
+        portfolio._total_commission += commission
+
+        pnl = direction * (close_price - order.fill_price) * order.fill_qty - commission
         order.realized_pnl += pnl
-        portfolio.cash += pnl
         portfolio.get_position(order.symbol).realized_pnl += pnl
         portfolio.get_position(order.symbol).quantity = 0.0
         order.closed_at = ts

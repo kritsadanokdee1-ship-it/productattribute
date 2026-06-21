@@ -27,6 +27,7 @@ class MarketMakingStrategy(BaseStrategy):
         skew_factor: float = 0.3,       # how much to skew quotes toward flat
         sl_pct: float = 0.008,          # hard stop loss on inventory
         tp_pct: float = 0.004,          # take profit on inventory position
+        quote_interval: int = 3,        # re-quote every N bars
     ):
         super().__init__(config)
         self.spread_pct = spread_pct
@@ -35,6 +36,8 @@ class MarketMakingStrategy(BaseStrategy):
         self.skew_factor = skew_factor
         self.sl_pct = sl_pct
         self.tp_pct = tp_pct
+        self.quote_interval = quote_interval
+        self._bar_counter: dict = {}
 
     @property
     def name(self) -> str:
@@ -47,8 +50,12 @@ class MarketMakingStrategy(BaseStrategy):
         portfolio_value: float,
         current_position: float,
     ) -> List[Order]:
-        bars = market.get_bars(symbol, 5)
-        if len(bars) < self.config.min_bars:
+        if market.bar_count(symbol) < self.config.min_bars:
+            return []
+
+        # Throttle: only re-quote every quote_interval bars
+        self._bar_counter[symbol] = self._bar_counter.get(symbol, 0) + 1
+        if self._bar_counter[symbol] % self.quote_interval != 0:
             return []
 
         price = market.last_price(symbol)
