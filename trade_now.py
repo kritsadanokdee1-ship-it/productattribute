@@ -19,13 +19,26 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-import MetaTrader5 as mt5
+try:
+    # Linux: ใช้ mt5linux bridge (ต้องรัน mt5_bridge_server.py บน Windows ก่อน)
+    import platform
+    if platform.system() != "Windows":
+        from mt5linux import MetaTrader5
+        mt5 = MetaTrader5(host=BRIDGE_HOST, port=BRIDGE_PORT)
+    else:
+        import MetaTrader5 as mt5
+except ImportError:
+    import MetaTrader5 as mt5
 import numpy as np
 
-# ─── CONFIG — fill in your Demo credentials ───────────────────────────────────
-MT5_LOGIN    = 0           # <-- your account number
-MT5_PASSWORD = ""          # <-- your password
-MT5_SERVER   = ""          # <-- e.g. "ICMarkets-Demo01"
+# ─── CONFIG ──────────────────────────────────────────────────────────────────
+MT5_LOGIN    = 68323797        # RoboForex Demo
+MT5_PASSWORD = ""              # <-- ใส่ password ของคุณ
+MT5_SERVER   = "RoboForex-Pro"
+
+# Bridge config (ถ้ารันจาก Linux → Windows)
+BRIDGE_HOST  = "YOUR_WINDOWS_IP"  # IP ของ Windows หรือ ngrok hostname
+BRIDGE_PORT  = 18812
 
 INSTRUMENTS = {
     "XAUUSD": {
