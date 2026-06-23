@@ -1,0 +1,113 @@
+// This source code is subject to the Mozilla Public License 2.0
+// © JP Morgan Trading System — RSI + Bollinger Bands + MA Overlay
+//@version=5
+indicator(
+     title      = "RSI · BB · MA",
+     shorttitle = "RSI·BB·MA",
+     overlay    = false,
+     precision  = 4,
+     max_bars_back = 500
+ )
+
+// ─── INPUTS ──────────────────────────────────────────────────────────────────
+grp_rsi  = "RSI"
+grp_bb   = "Bollinger Bands (on RSI)"
+grp_ma   = "Moving Average (on RSI)"
+grp_vis  = "Visuals"
+
+rsi_len   = input.int(10,  "Length",      minval = 2, group = grp_rsi)
+rsi_src   = input.source(close, "Source", group = grp_rsi)
+
+bb_len    = input.int(34,  "Length",      minval = 2, group = grp_bb)
+bb_mult   = input.float(2.0, "Std Dev",   minval = 0.1, step = 0.1, group = grp_bb)
+
+ma_len    = input.int(2,   "Length",      minval = 1, group = grp_ma)
+ma_type   = input.string("EMA", "Type",   options = ["EMA","SMA","WMA","VWMA","HullMA"], group = grp_ma)
+
+show_fill = input.bool(true, "BB Fill",   group = grp_vis)
+show_ob   = input.bool(true, "OB/OS Zones (70/30)", group = grp_vis)
+show_mid  = input.bool(true, "RSI Midline (50)", group = grp_vis)
+
+// ─── COLORS ──────────────────────────────────────────────────────────────────
+c_rsi       = color.new(#e2c27d, 0)       // warm gold — RSI line
+c_ma        = color.new(#00e5ff, 0)       // cyan — MA line
+c_bb_upper  = color.new(#7b61ff, 0)       // violet — BB upper
+c_bb_lower  = color.new(#7b61ff, 0)       // violet — BB lower
+c_bb_basis  = color.new(#7b61ff, 60)      // violet dim — BB basis
+c_fill_bull = color.new(#7b61ff, 88)      // purple fill when RSI above basis
+c_fill_bear = color.new(#ff4c6a, 88)      // red fill when RSI below basis
+c_ob        = color.new(#ff4c6a, 85)
+c_os        = color.new(#26a69a, 85)
+c_mid       = color.new(#ffffff, 80)
+
+// ─── RSI ─────────────────────────────────────────────────────────────────────
+rsi = ta.rsi(rsi_src, rsi_len)
+
+// ─── BOLLINGER BANDS ON RSI ──────────────────────────────────────────────────
+bb_basis  = ta.sma(rsi, bb_len)
+bb_dev    = ta.stdev(rsi, bb_len)
+bb_upper  = bb_basis + bb_mult * bb_dev
+bb_lower  = bb_basis - bb_mult * bb_dev
+bb_width  = bb_upper - bb_lower
+bb_pct_b  = bb_width != 0 ? (rsi - bb_lower) / bb_width : 0.5
+
+// ─── MA ON RSI ───────────────────────────────────────────────────────────────
+ma_of_rsi = switch ma_type
+    "SMA"    => ta.sma(rsi, ma_len)
+    "WMA"    => ta.wma(rsi, ma_len)
+    "VWMA"   => ta.vwma(rsi, ma_len)
+    "HullMA" => ta.wma(2 * ta.wma(rsi, math.floor(ma_len / 2)) - ta.wma(rsi, ma_len), math.floor(math.sqrt(ma_len)))
+    =>          ta.ema(rsi, ma_len)   // default: EMA
+
+// ─── OB/OS ZONES ─────────────────────────────────────────────────────────────
+h_ob = hline(70, "Overbought", color = color.new(#ff4c6a, 60), linestyle = hline.style_dashed, linewidth = 1)
+h_os = hline(30, "Oversold",   color = color.new(#26a69a, 60), linestyle = hline.style_dashed, linewidth = 1)
+h_50 = hline(50, "Midline",    color = color.new(#ffffff, 80), linestyle = hline.style_dotted,  linewidth = 1)
+hline(100, "", color = color.new(#ffffff, 95))
+hline(0,   "", color = color.new(#ffffff, 95))
+
+ob_fill = show_ob ? c_ob : color.new(color.white, 100)
+os_fill = show_ob ? c_os : color.new(color.white, 100)
+fill(h_ob, h_50, color = ob_fill)
+fill(h_os, h_50, color = os_fill)
+
+// ─── PLOTS ───────────────────────────────────────────────────────────────────
+p_upper = plot(bb_upper, "BB Upper", color = c_bb_upper, linewidth = 1)
+p_lower = plot(bb_lower, "BB Lower", color = c_bb_lower, linewidth = 1)
+p_basis = plot(bb_basis, "BB Basis", color = c_bb_basis, linewidth = 1, style = plot.style_circles)
+
+fill_color = show_fill
+     ? (rsi >= bb_basis ? c_fill_bull : c_fill_bear)
+     : color.new(color.white, 100)
+fill(p_upper, p_lower, color = fill_color, title = "BB Fill")
+
+plot(rsi,       "RSI",    color = c_rsi, linewidth = 2)
+plot(ma_of_rsi, "MA(RSI)", color = c_ma, linewidth = 1, style = plot.style_line)
+
+// ─── SIGNALS — candle dots ────────────────────────────────────────────────────
+cross_up   = ta.crossover(rsi, bb_lower)
+cross_down = ta.crossunder(rsi, bb_upper)
+plotshape(cross_up,   "Cross Up",   shape.circle,  location.absolute, color.new(#00e5ff, 20), size = size.tiny, offset = 0)
+plotshape(cross_down, "Cross Down", shape.circle,  location.absolute, color.new(#ff4c6a, 20), size = size.tiny, offset = 0)
+
+// ─── LABEL (top-right corner) — live values ───────────────────────────────────
+if barstate.islast
+    lbl = "RSI(" + str.tostring(rsi_len) + ")  " + str.tostring(rsi, "#.##") +
+          "\nBands(" + str.tostring(bb_len) + ")  ▲" + str.tostring(bb_upper, "#.###") +
+          "  ◆" + str.tostring(bb_basis, "#.###") +
+          "  ▼" + str.tostring(bb_lower, "#.###") +
+          "\nMA(" + str.tostring(ma_len) + ")  " + str.tostring(ma_of_rsi, "#.####")
+    label.new(bar_index, bb_upper + (bb_width * 0.15), lbl,
+         style      = label.style_label_lower_left,
+         textcolor  = color.new(#e0e0e0, 0),
+         color      = color.new(#1a1a2e, 10),
+         size       = size.normal,
+         textalign  = text.align_left)
+
+// ─── ALERTS ──────────────────────────────────────────────────────────────────
+alertcondition(cross_up,   "RSI crosses BB Lower — Oversold bounce", "RSI crossed above BB Lower → possible long")
+alertcondition(cross_down, "RSI crosses BB Upper — Overbought fade",  "RSI crossed below BB Upper → possible short")
+alertcondition(ta.crossover(rsi,  70), "RSI enters Overbought zone", "RSI > 70")
+alertcondition(ta.crossunder(rsi, 30), "RSI enters Oversold zone",   "RSI < 30")
+alertcondition(ta.crossover(rsi,  ma_of_rsi) and rsi < 50, "RSI crosses MA from below (bullish)", "RSI × MA ↑ bullish")
+alertcondition(ta.crossunder(rsi, ma_of_rsi) and rsi > 50, "RSI crosses MA from above (bearish)", "RSI × MA ↓ bearish")
