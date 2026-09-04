@@ -1,0 +1,625 @@
+<title>Gold News Straddle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --paper:#FBFAF7; --surface:#FFFFFF; --sunk:#F3F1EA;
+  --ink:#17150F; --ink2:#4C4740; --ink3:#837C6E;
+  --rule:#E2DED3; --rule2:#CFC9BA;
+  --gold:#A67514; --gold-soft:#F0E4C8;
+  --blue:#1A6BB5; --blue-soft:#DCE9F6;
+  --up:#1E8F82; --down:#C33F37;
+  --pos:#1E8F82; --neg:#C33F37; --mid:#9A958A;
+  --shadow:0 1px 2px rgba(23,21,15,.06),0 8px 24px -18px rgba(23,21,15,.35);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#121210; --surface:#1A1A17; --sunk:#201F1B;
+    --ink:#F2EFE6; --ink2:#B9B3A5; --ink3:#8C8779;
+    --rule:#2C2A24; --rule2:#3D3A32;
+    --gold:#B8862B; --gold-soft:#3A2F17;
+    --blue:#3D93D6; --blue-soft:#152838;
+    --up:#2FB3A3; --down:#E0625A;
+    --pos:#2FB3A3; --neg:#E0625A; --mid:#6E6A60;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px -20px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121210; --surface:#1A1A17; --sunk:#201F1B;
+  --ink:#F2EFE6; --ink2:#B9B3A5; --ink3:#8C8779;
+  --rule:#2C2A24; --rule2:#3D3A32;
+  --gold:#B8862B; --gold-soft:#3A2F17;
+  --blue:#3D93D6; --blue-soft:#152838;
+  --up:#2FB3A3; --down:#E0625A;
+  --pos:#2FB3A3; --neg:#E0625A; --mid:#6E6A60;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px -20px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif;
+  font-size:16px; line-height:1.72; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 26px 90px}
+.col{max-width:66ch}
+h1,h2,h3{font-family:Anuphan,"IBM Plex Sans Thai",system-ui,sans-serif;text-wrap:balance;margin:0}
+h1{font-weight:700;font-size:clamp(2.1rem,5vw,3.3rem);line-height:1.08;letter-spacing:-.02em}
+h2{font-weight:600;font-size:clamp(1.4rem,2.6vw,1.85rem);line-height:1.2;letter-spacing:-.01em}
+h3{font-weight:600;font-size:1.06rem;line-height:1.4}
+p{margin:0 0 1em}
+a{color:var(--gold)}
+a:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:3px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:.7rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink3)}
+
+/* ---- masthead ---- */
+header{padding:56px 0 30px}
+.dek{font-size:1.12rem;color:var(--ink2);margin-top:18px;max-width:60ch}
+.src{margin-top:22px;font-size:.8rem;color:var(--ink3);display:flex;flex-wrap:wrap;gap:6px 18px}
+.src b{font-weight:500;color:var(--ink2)}
+
+/* ---- MT5-style order-line divider ---- */
+.divider{display:flex;align-items:center;gap:14px;margin:64px 0 26px}
+.divider .line{flex:1;height:0;border-top:1px dashed var(--rule2)}
+.divider .tag{font-family:"JetBrains Mono",monospace;font-size:.7rem;letter-spacing:.06em;
+  padding:3px 9px;border:1px solid var(--rule2);color:var(--ink2);background:var(--surface);
+  white-space:nowrap}
+.divider h2{flex:0 0 auto}
+
+/* ---- stat tiles ---- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin:34px 0 0}
+.tile{background:var(--surface);padding:18px 18px 16px}
+.tile .k{font-family:"JetBrains Mono",monospace;font-size:.66rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink3)}
+.tile .v{font-family:Anuphan,sans-serif;font-weight:700;font-size:1.85rem;line-height:1.15;
+  margin-top:8px;font-variant-numeric:tabular-nums}
+.tile .s{font-size:.8rem;color:var(--ink3);margin-top:3px}
+
+/* ---- figures ---- */
+figure{margin:0}
+.fig{background:var(--surface);border:1px solid var(--rule);padding:20px 20px 14px;margin:26px 0}
+.fig-h{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  flex-wrap:wrap;margin-bottom:4px}
+.fig-h h3{font-size:1rem}
+figcaption{font-size:.83rem;color:var(--ink3);margin-top:10px;line-height:1.6}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.78rem;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.swatch{width:14px;height:3px;border-radius:2px;display:inline-block}
+.scroller{overflow-x:auto}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+
+/* ---- tables ---- */
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--rule)}
+th{font-family:"JetBrains Mono",monospace;font-size:.66rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink3);font-weight:500;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td.num{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:none}
+.tr-total td{border-top:2px solid var(--rule2);font-weight:600}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.bar-cell{position:relative;width:104px;min-width:104px;padding:8px 0 8px 14px}
+.bar-cell i{position:absolute;top:50%;transform:translateY(-50%);height:9px;display:block}
+
+/* ---- steps ---- */
+ol.steps{list-style:none;counter-reset:s;padding:0;margin:26px 0;display:grid;gap:1px;
+  background:var(--rule);border:1px solid var(--rule)}
+ol.steps li{counter-increment:s;background:var(--surface);padding:16px 18px 16px 62px;position:relative}
+ol.steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-size:.76rem;color:var(--gold);font-weight:700}
+ol.steps b{font-weight:600}
+ol.steps .note{display:block;font-size:.85rem;color:var(--ink3);margin-top:3px}
+
+.callout{border-left:3px solid var(--gold);background:var(--sunk);padding:16px 20px;margin:26px 0;
+  font-size:.94rem}
+.callout p:last-child{margin-bottom:0}
+ul.plain{padding-left:1.1em;margin:0 0 1em}
+ul.plain li{margin-bottom:.55em}
+details{border:1px solid var(--rule);background:var(--surface);margin:26px 0}
+summary{padding:13px 18px;cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:.76rem;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+details[open] summary{border-bottom:1px solid var(--rule)}
+.details-body{padding:6px 18px 14px;max-height:420px;overflow:auto}
+.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--rule2);
+  padding:7px 10px;font-size:.76rem;box-shadow:var(--shadow);z-index:20;opacity:0;transition:opacity .1s;
+  font-family:"JetBrains Mono",monospace;white-space:nowrap;line-height:1.5}
+footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--rule);
+  font-size:.8rem;color:var(--ink3)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:640px){
+  .wrap{padding:0 16px 60px}
+  .divider{margin:46px 0 20px;flex-wrap:wrap}
+  ol.steps li{padding-left:52px}
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">XAUUSD · M1 · 108 NFP releases · 2017–2026</div>
+  <h1>ยิงคร่อมข่าว<br>บนทองคำ</h1>
+  <p class="dek">แกะเทคนิคจากคลิป EA ทีละขั้น แล้วเอาไป backtest กับข้อมูลจริง
+  ระดับนาที ตั้งแต่ปี 2017 ถึงสิงหาคม 2026 — พร้อมผลที่ไม่สวยทั้งหมด</p>
+  <div class="src">
+    <span><b>คลิปต้นทาง</b> MT5 มือถือ · XAUUSD-ECN · M1 · “ea ready for news nfp”</span>
+    <span><b>ข้อมูล</b> Exness MT5 M1, 3.27M แท่ง</span>
+    <span><b>Lot</b> 0.01 ต่อข้าง</span>
+  </div>
+</header>
+
+<div class="tiles">
+  <div class="tile"><div class="k">เหตุการณ์</div><div class="v mono">108</div>
+    <div class="s">ประกาศ NFP ปี 2017–2026</div></div>
+  <div class="tile"><div class="k">ตั้งค่าตามคลิป</div><div class="v mono pos">+187.81</div>
+    <div class="s">USD รวม 9 ปี ที่ 0.01 lot</div></div>
+  <div class="tile"><div class="k">ปรับสเกลตามผันผวน</div><div class="v mono pos">+1.78 R</div>
+    <div class="s">ต่อข่าว · PF 2.61 · t = 3.30</div></div>
+  <div class="tile"><div class="k">ทดสอบไม่มีข่าว</div><div class="v mono neg">−154.02</div>
+    <div class="s">USD · PF 0.57 · t = −2.95</div></div>
+</div>
+
+<!-- ============================ HERO CHART ============================ -->
+<div class="divider">
+  <h2>นาทีที่คลิปถ่ายอยู่</h2>
+  <span class="line"></span>
+  <span class="tag">2026-08-12 · 12:30 UTC</span>
+</div>
+
+<div class="col">
+<p>ในคลิปมีแท่งแดงยักษ์แท่งเดียวที่ราคาทิ้งดิ่งจาก 4,430 ลงไป 4,382
+แล้วเด้งกลับ ค้นในข้อมูลจริงเจอแท่งที่ตรงเป๊ะ: <b class="mono">12 ส.ค. 2026 เวลา 12:30 UTC</b>
+(08:30 นิวยอร์ก) เปิด 4,426.62 · สูงสุด 4,432.72 · <b>ต่ำสุด 4,382.03</b> · ปิด 4,393.98
+— ช่วง 50.69 ดอลลาร์ ภายในนาทีเดียว</p>
+</div>
+
+<figure class="fig">
+  <div class="fig-h">
+    <h3>เล่นซ้ำเหตุการณ์ในคลิป</h3>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--up)"></i>แท่งขึ้น</span>
+      <span><i class="swatch" style="background:var(--down)"></i>แท่งลง</span>
+      <span><i class="swatch" style="background:var(--ink3);height:1px;width:18px"></i>เส้นคำสั่ง pending</span>
+    </div>
+  </div>
+  <div class="scroller"><div id="candles"></div></div>
+  <figcaption>BUY STOP ถูกยิงตอนราคาพุ่งขึ้นแล้วโดน SL ทันทีตอนราคาสวนกลับ (−5.07 USD)
+  ส่วน SELL STOP ถูกยิงระหว่างทางลง แล้วปิดด้วย trailing stop นาทีถัดมา (+25.10 USD)
+  — รวม <b class="pos">+20.03 USD</b> ที่ 0.01 lot สองข้าง
+  (ในคลิปยังไม่ปิดไม้ กำไรลอยโชว์ +33.84 USD)</figcaption>
+</figure>
+
+<!-- ============================ STEPS ============================ -->
+<div class="divider">
+  <h2>แกะทีละขั้น</h2>
+  <span class="line"></span>
+  <span class="tag">7 STEPS</span>
+</div>
+
+<div class="col">
+<p>เฟรมในคลิปบอกทุกอย่างที่จำเป็น: วินาทีที่ 0 มีไม้ <span class="mono">SELL 0.01</span>
+เปิดอยู่พร้อม pending <span class="mono">BUY STOP 0.01</span> ค้างเหนือราคา
+พอถึงวินาทีที่ 44 มี <span class="mono">SELL 0.01</span> และ <span class="mono">BUY 0.01</span>
+<b>เปิดพร้อมกันสองขา</b> — นั่นแปลว่าเป็นบัญชี hedging และไม่ได้ตั้งเป็น OCO</p>
+</div>
+
+<ol class="steps">
+  <li><b>เลือกข่าวเวลา 08:30 นิวยอร์ก</b> — NFP วันศุกร์แรกของเดือน หรือ CPI
+    <span class="note">= 12:30 UTC ช่วง DST · 13:30 UTC ช่วงฤดูหนาว</span></li>
+  <li><b>T−1 นาที: วาง pending คร่อมราคา</b> BUY STOP ที่ mid + D และ SELL STOP ที่ mid − D
+    <span class="note">คลิปใช้ D ประมาณ 0.6–1.0 USD, lot 0.01 เท่ากันสองข้าง</span></li>
+  <li><b>ไม่ตัดไม้ตรงข้าม</b> ปล่อยให้ติดได้ทั้งสองขา
+    <span class="note">ในการทดสอบ 61 จาก 108 ครั้ง ติดทั้งสองข้างจริง และการปล่อยให้ติดสองขาให้ผลดีกว่าตัดทิ้ง</span></li>
+  <li><b>T+0: ข่าวออก</b> สเปรดถ่าง ราคากระชาก ไม้ถูกยิง
+    <span class="note">91% ของไม้ทั้งหมดถูกยิงในนาทีที่ข่าวออกพอดี</span></li>
+  <li><b>ตัดขาดทุนสั้น</b> ฝั่งที่ผิดทางโดน SL
+    <span class="note">ไม้ที่ขาดทุนถือเฉลี่ยแค่ 1 นาที</span></li>
+  <li><b>ปล่อยฝั่งที่ถูกทางวิ่ง</b> ด้วย trailing stop หรือถือครบเวลาแล้วปิด
+    <span class="note">ไม้ที่กำไรถือเฉลี่ย 7–30 นาที · กำไรเฉลี่ยต่อขาดทุนเฉลี่ย = 82 : 14</span></li>
+  <li><b>T+5 นาที: ลบ pending ที่ยังไม่ถูกยิง</b>
+    <span class="note">กันโดนลากตอนราคาสะบัดกลับหลังข่าวจบ</span></li>
+</ol>
+
+<div class="callout col">
+  <p><b>สิ่งที่คลิปไม่ได้บอก</b> — ค่า SL, TP และ trailing ที่แท้จริง เพราะไม่มีเส้น SL/TP
+  โชว์บนจอเลย ในโค้ดจึงทำเป็นพารามิเตอร์แล้วกวาดหาเอง 720 ชุด</p>
+</div>
+
+<!-- ============================ METHOD ============================ -->
+<div class="divider">
+  <h2>ทดสอบยังไง</h2>
+  <span class="line"></span>
+  <span class="tag">25,877 M1 BARS</span>
+</div>
+
+<div class="col">
+<p><b>ข้อมูล</b> — XAUUSD M1 จาก terminal MT5 ของ Exness (symbol <span class="mono">XAUUSDm</span>)
+2017‑04‑28 ถึง 2026‑08‑18 รวม 3.27 ล้านแท่ง ราคาที่เก็บเป็น bid และมีคอลัมน์ spread จริงติดมาด้วย
+ตัดเฉพาะหน้าต่าง ±120 นาทีรอบข่าวมาใช้</p>
+
+<p><b>ปฏิทิน</b> — ศุกร์แรกของเดือน แล้วปรับตามความเป็นจริง: วันหยุด 4 กรกฎาคม
+ปีใหม่ และช่วง government shutdown ปลายปี 2025 ที่ BLS เลื่อนประกาศออกไป
+ทุกการปรับยืนยันกับข้อมูลราคาแล้ว (มีแท่งกระชากที่นาทีประกาศจริง) เหลือ 108 เหตุการณ์
+วัน Good Friday ที่ตลาดปิดถูกตัดทิ้งเพราะไม่มีข้อมูล</p>
+
+<p><b>จุดสำคัญของโมเดล</b> — ไม่ได้ดูแค่ high/low ของแท่ง แต่<b>เดินตามเส้นทางในแท่ง</b>
+แท่งขึ้นเดิน <span class="mono">open → low → high → close</span>
+แท่งลงเดิน <span class="mono">open → high → low → close</span>
+เพราะในนาทีที่ข่าวออก BUY STOP กับ SELL STOP อยู่ในแท่งเดียวกันเสมอ
+ลำดับการโดนแตะคือสิ่งที่ตัดสินผล ถ้าไม่ทำแบบนี้ backtest straddle ไม่มีความหมาย</p>
+
+<p><b>สเปรดคิดรอบ mid</b> — bid = mid − s/2, ask = mid + s/2 เวลาสเปรดถ่าง
+ask จึงวิ่งขึ้นและ bid วิ่งลงพร้อมกันเหมือนของจริง (สเปรดถ่างอย่างเดียวก็ยิง buy stop ได้
+ซึ่งเกิดขึ้นจริงตอนข่าว) ต้นทุนที่คิด: สเปรดจากข้อมูล (ขั้นต่ำ 0.16) + สเปรดข่าว 0.80 USD
+ใน 3 นาทีแรก + slippage <span class="mono">0.05 + 10% ของช่วงแท่ง</span> (เพดาน 2.00)
++ ค่าคอม 3.50 USD ต่อ lot ต่อข้าง</p>
+</div>
+
+<!-- ============================ RESULTS ============================ -->
+<div class="divider">
+  <h2>ผล backtest</h2>
+  <span class="line"></span>
+  <span class="tag">2017 → 2026</span>
+</div>
+
+<div class="col">
+<p>กราฟข้างล่างวัดเป็น <b>R</b> (กำไรหารด้วยเงินที่เสี่ยงต่อไม้) เพราะสองชุดค่านี้
+เสี่ยงไม่เท่ากัน วัดเป็น R แล้วเทียบกันได้ตรง ๆ เส้นประคือจุดแบ่ง in‑sample / out‑of‑sample</p>
+</div>
+
+<figure class="fig">
+  <div class="fig-h">
+    <h3>กำไรสะสม (R) ต่อ 108 ครั้งของข่าว</h3>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--gold)"></i>ตั้งค่าตามคลิป (D 0.60 · SL 3.00 · trail 3.00)</span>
+      <span><i class="swatch" style="background:var(--blue)"></i>สเกลตามผันผวน (D 0.35u · SL 0.25u · ถือ 30 นาที)</span>
+    </div>
+  </div>
+  <div class="scroller"><div id="equity"></div></div>
+  <figcaption>ชุดตามคลิปใช้ระยะเป็นดอลลาร์คงที่ ซึ่งเป็นคนละกลยุทธ์กันเมื่อทองขึ้นจาก
+  1,250 เป็น 4,500 ดอลลาร์ — กำไรเกือบทั้งหมดจึงมาจากปี 2024 เป็นต้นมา
+  ส่วนชุดที่ให้ทุกระยะเป็นสัดส่วนของช่วงราคา 120 นาทีก่อนข่าว เดินขึ้นสม่ำเสมอตลอด 9 ปี</figcaption>
+</figure>
+
+<figure class="fig">
+  <div class="fig-h"><h3>แยกรายปี</h3></div>
+  <div class="scroller"><table id="yearly"></table></div>
+  <figcaption>ชุดสเกลตามผันผวนกำไร 9 จาก 10 ปี (ขาดทุนเฉพาะปี 2020 −14 USD)
+  ส่วนชุดตามคลิปขาดทุน 4 ปีจาก 10</figcaption>
+</figure>
+
+<figure class="fig">
+  <div class="fig-h"><h3>เลือกค่าจาก 2017–2022 แล้ววัดกับ 2023–2026</h3></div>
+  <div class="scroller"><table id="split"></table></div>
+  <figcaption>เลือกพารามิเตอร์โดยดูเฉพาะช่วงแรกเท่านั้น แล้วเอาไปวัดกับช่วงหลังที่ไม่เคยเห็น
+  — ผลช่วงหลังดีกว่าช่วงที่ใช้เลือก ซึ่งเป็นสัญญาณว่าไม่ได้ overfit</figcaption>
+</figure>
+
+<!-- ============================ ROBUSTNESS ============================ -->
+<div class="divider">
+  <h2>ทนแค่ไหน</h2>
+  <span class="line"></span>
+  <span class="tag">720 CONFIGS</span>
+</div>
+
+<div class="col">
+<p>กวาดพารามิเตอร์ 720 ชุด (ระยะ × SL × วิธีออก × ตัดหรือไม่ตัดไม้ตรงข้าม × สเกลคงที่หรือตามผันผวน)
+เรียงจากผล <b>in‑sample</b> อย่างเดียว แล้วดูว่า out‑of‑sample เป็นยังไง</p>
+<ul class="plain">
+  <li>20 ชุดที่ดีที่สุด in‑sample → กำไร out‑of‑sample <b>ครบทั้ง 20/20</b> (มัธยฐาน +2.42 R ต่อข่าว)</li>
+  <li>ทั้ง 720 ชุด → กำไร out‑of‑sample <b>87%</b></li>
+  <li>รูปทรงที่ชนะเหมือนกันหมด: <b>SL สั้น ไม่ตั้ง TP ถือ 15–30 นาที ปล่อยให้ติดสองขา</b></li>
+</ul>
+</div>
+
+<figure class="fig">
+  <div class="fig-h">
+    <h3>ต้นทุนคือตัวตัดสิน</h3>
+    <div class="legend"><span>กำไรสุทธิ USD ที่ 0.01 lot · ตั้งค่าตามคลิป</span></div>
+  </div>
+  <div class="scroller"><div id="cost"></div></div>
+  <figcaption>แกนตั้งคือสเปรดที่โบรกให้ในช่วงข่าว แกนนอนคือ slippage ของคำสั่ง stop
+  ช่องที่มีกรอบคือค่าที่ใช้เป็นฐานในรายงานนี้
+  ถ้าโบรกถ่างสเปรดเกิน ~1.5 USD หรือ slippage เกิน 25% ของช่วงแท่ง กลยุทธ์ติดลบทันที
+  — <b>เกินครึ่งของ edge อยู่ที่คุณภาพการยิงคำสั่ง ไม่ใช่ที่ตัวกลยุทธ์</b></figcaption>
+</figure>
+
+<div class="col">
+<p><b>ทดสอบหลอก (placebo)</b> — ยิงกลยุทธ์เดิม เวลาเดิม 08:30 ET แต่เป็นวันอังคาร
+ใกล้วันที่ 20 ซึ่งไม่มีข่าวใหญ่ 111 ครั้ง ผลคือ <b class="neg">−154.02 USD</b> ·
+PF 0.57 · ชนะ 28.8% · t = −2.95 → edge มาจากตัวข่าวจริง ๆ ไม่ใช่จากกลไกการวางไม้</p>
+</div>
+
+<!-- ============================ CAVEATS ============================ -->
+<div class="divider">
+  <h2>ก่อนเอาไปใช้จริง</h2>
+  <span class="line"></span>
+  <span class="tag">READ THIS</span>
+</div>
+
+<div class="col">
+<ul class="plain">
+  <li><b>เทรดปีละ ~12 ครั้ง</b> — ตั้งค่าตามคลิปที่ 0.01 lot ได้กำไรรวม 188 USD ใน 9 ปี
+  ≈ 21 USD ต่อปี จะมีความหมายต้องขยาย size ซึ่งขยายความเสี่ยงตามไปด้วย</li>
+  <li><b>ผลกระจุกตัวมาก</b> — ชุดตามคลิป: 5 ข่าวที่ดีที่สุดคิดเป็น 83% ของกำไรทั้งหมด
+  (3 ข่าวแรก 54%) ชุดสเกลตามผันผวนกระจายกว่าแต่ยังกระจุก (top‑5 = 44%)
+  พลาดไม่กี่ครั้ง ผลเปลี่ยนไปคนละเรื่อง</li>
+  <li><b>นี่คือ backtest บนแท่ง M1 ไม่ใช่ tick</b> — ราคาที่ยิงได้จริงในวินาทีข่าวออก
+  อาจแย่กว่าที่จำลอง ตารางต้นทุนข้างบนคือขอบเขตของความเสียหายนั้น</li>
+  <li><b>โบรกจำนวนมากไม่ต้อนรับการเทรดข่าว</b> — ขยาย stop level, ถ่างสเปรด, requote
+  หรือปิดรับ pending ก่อนข่าว ถ้าเจอแบบนั้นผลจริงจะไม่เหมือน backtest</li>
+  <li><b>ต้องเป็นบัญชี hedging</b> — MT5 แบบ netting เปิดสองขาพร้อมกันไม่ได้</li>
+  <li>นี่คือการวิเคราะห์เชิงเทคนิคและสถิติ <b>ไม่ใช่คำแนะนำการลงทุน</b>
+  ผลย้อนหลังไม่รับประกันอนาคต และการเทรดข่าวมีความเสี่ยงสูงมาก</li>
+</ul>
+</div>
+
+<details>
+  <summary>ตารางผลรายครั้ง ทั้ง 108 ข่าว</summary>
+  <div class="details-body"><table id="alltable"></table></div>
+</details>
+
+<footer>
+  โค้ดทั้งหมด ข้อมูลหน้าต่างข่าว และไฟล์ผลลัพธ์อยู่ในโฟลเดอร์
+  <span class="mono">gold_news_straddle/</span> ของ repo
+  (<span class="mono">straddle.py</span> · <span class="mono">run_backtest.py</span> ·
+  <span class="mono">prepare_data.py</span>) — รัน <span class="mono">python run_backtest.py</span>
+  แล้วได้ตัวเลขทุกตัวในหน้านี้กลับมา
+</footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>window.__DATA__={"events":["2017-05-05","2017-06-02","2017-07-07","2017-08-04","2017-09-01","2017-10-06","2017-11-03","2017-12-01","2018-01-05","2018-02-02","2018-03-02","2018-04-06","2018-05-04","2018-06-01","2018-07-06","2018-08-03","2018-09-07","2018-10-05","2018-11-02","2018-12-07","2019-01-04","2019-02-01","2019-03-01","2019-04-05","2019-05-03","2019-06-07","2019-07-05","2019-08-02","2019-09-06","2019-10-04","2019-11-01","2019-12-06","2020-01-03","2020-02-07","2020-03-06","2020-04-03","2020-05-01","2020-06-05","2020-07-02","2020-08-07","2020-09-04","2020-10-02","2020-11-06","2020-12-04","2021-01-08","2021-02-05","2021-03-05","2021-05-07","2021-06-04","2021-07-02","2021-08-06","2021-09-03","2021-10-01","2021-11-05","2021-12-03","2022-01-07","2022-02-04","2022-03-04","2022-04-01","2022-05-06","2022-06-03","2022-07-01","2022-08-05","2022-09-02","2022-10-07","2022-11-04","2022-12-02","2023-01-06","2023-02-03","2023-03-03","2023-05-05","2023-06-02","2023-07-07","2023-08-04","2023-09-01","2023-10-06","2023-11-03","2023-12-01","2024-01-05","2024-02-02","2024-03-01","2024-04-05","2024-05-03","2024-06-07","2024-07-05","2024-08-02","2024-09-06","2024-10-04","2024-11-01","2024-12-06","2025-01-03","2025-02-07","2025-03-07","2025-04-04","2025-05-02","2025-06-06","2025-07-03","2025-08-01","2025-09-05","2025-11-20","2025-12-18","2026-01-09","2026-02-06","2026-03-06","2026-05-01","2026-06-05","2026-07-02","2026-08-07"],"clip_r":[1.01,4.059,-2.188,1.535,1.227,-0.684,0.033,0.117,-1.08,1.071,0.714,1.262,-1.101,-0.235,-1.123,0.713,1.134,-2.15,-0.789,0.129,2.148,-1.095,-0.442,-0.494,-1.073,0.875,3.881,-2.323,-0.45,-2.509,-0.476,0.347,0.829,0.901,-2.538,-2.269,-2.21,1.585,-2.37,-0.9,0.777,-2.278,-2.345,-1.165,-2.44,1.462,0.653,3.149,1.957,-2.508,1.287,2.7,-0.308,-0.797,0.763,-0.244,2.478,-2.285,-2.217,-0.984,-2.214,0.588,3.08,-0.085,-1.472,-2.31,2.933,-1.305,2.294,-0.221,1.143,-1.228,-2.438,0.115,0.724,-0.266,3.289,-0.548,2.955,0.299,-0.506,2.305,5.398,2.31,-0.627,3.543,0.482,1.998,-0.211,-2.545,-0.774,0.568,-0.849,-2.9,-0.73,-0.595,9.147,8.977,5.927,-2.964,1.258,-2.888,4.007,9.425,-0.604,0.864,13.01,11.52],"sel_r":[0.0,21.695,-2.685,7.403,-1.966,-3.288,-1.381,0.0,0.84,-3.177,0.0,-1.303,1.773,-1.203,-3.968,-1.22,12.309,-2.687,2.291,-1.431,-1.464,-1.637,0.0,-1.164,-1.445,-1.302,7.826,-3.842,5.399,-3.436,1.574,7.399,0.0,-2.627,-0.05,-1.185,0.0,4.331,-2.341,-2.358,9.273,-2.628,-1.155,-2.683,0.0,-1.076,-1.232,19.061,8.993,-2.629,12.327,5.53,-1.149,-2.945,-1.414,-1.547,10.871,0.0,-1.182,-3.066,-2.609,0.0,12.025,-1.763,-2.954,4.794,10.38,-1.32,18.617,0.0,12.075,-1.465,-1.487,-4.375,3.615,1.71,5.997,0.0,-1.276,12.199,-1.175,1.094,-1.27,3.948,-2.823,4.507,-2.073,8.642,-1.131,-2.868,0.0,-3.13,-1.264,0.0,-1.264,-2.545,6.495,12.949,11.853,-1.206,2.089,-0.369,0.0,-1.121,0.0,11.491,12.066,6.126],"clip_usd":[3.03,12.18,-6.56,4.6,3.68,-2.05,0.1,0.35,-3.24,3.21,2.14,3.79,-3.3,-0.71,-3.37,2.14,3.4,-6.45,-2.37,0.39,6.44,-3.29,-1.33,-1.48,-3.22,2.62,11.64,-6.97,-1.35,-7.53,-1.43,1.04,2.49,2.7,-7.61,-6.81,-6.63,4.76,-7.11,-2.7,2.33,-6.83,-7.03,-3.49,-7.32,4.39,1.96,9.45,5.87,-7.52,3.86,8.1,-0.92,-2.39,2.29,-0.73,7.43,-6.86,-6.65,-2.95,-6.64,1.76,9.24,-0.26,-4.42,-6.93,8.8,-3.92,6.88,-0.66,3.43,-3.68,-7.31,0.35,2.17,-0.8,9.87,-1.64,8.86,0.9,-1.52,6.92,16.2,6.93,-1.88,10.63,1.45,5.99,-0.63,-7.63,-2.32,1.71,-2.55,-8.7,-2.19,-1.79,27.44,26.93,17.78,-8.89,3.77,-8.66,12.02,28.27,-1.81,2.59,39.03,34.56],"sel_usd":[0.0,216.95,-26.85,74.03,-19.66,-32.88,-13.81,0.0,8.4,-31.77,0.0,-13.03,17.73,-12.03,-39.68,-12.2,123.09,-26.87,22.91,-14.31,-14.64,-16.37,0.0,-11.64,-14.45,-13.02,78.26,-38.42,53.99,-34.36,15.74,73.99,0.0,-26.27,-0.5,-11.85,0.0,43.31,-23.41,-23.58,92.73,-26.28,-11.55,-26.83,0.0,-10.76,-12.32,190.61,89.93,-26.29,123.27,55.3,-11.49,-29.45,-14.14,-15.47,108.71,0.0,-11.82,-30.66,-26.09,0.0,120.25,-17.63,-29.54,47.94,103.8,-13.2,186.17,0.0,120.75,-14.65,-14.87,-43.75,36.15,17.1,59.97,0.0,-12.76,121.99,-11.75,10.94,-12.7,39.48,-28.23,45.07,-20.73,86.42,-11.31,-28.68,0.0,-31.3,-12.64,0.0,-12.64,-25.45,64.95,129.49,118.53,-12.06,20.89,-3.69,0.0,-11.21,0.0,114.91,120.66,61.26],"yearly":[{"year":2017,"n":8.0,"clip":15.32,"clipR":0.64,"sel":197.78,"selR":2.47},{"year":2018,"n":12.0,"clip":-4.36,"clipR":-0.12,"sel":22.26,"selR":0.19},{"year":2019,"n":12.0,"clip":-4.84,"clipR":-0.13,"sel":79.07,"selR":0.66},{"year":2020,"n":12.0,"clip":-35.95,"clipR":-1.0,"sel":-14.24,"selR":-0.12},{"year":2021,"n":11.0,"clip":17.76,"clipR":0.54,"sel":354.67,"selR":3.22},{"year":2022,"n":12.0,"clip":-8.2,"clipR":-0.23,"sel":249.49,"selR":2.08},{"year":2023,"n":11.0,"clip":4.68,"clipR":0.14,"sel":333.66,"selR":3.03},{"year":2024,"n":12.0,"clip":46.2,"clipR":1.28,"sel":177.73,"selR":1.48},{"year":2025,"n":11.0,"clip":51.19,"clipR":1.55,"sel":239.77,"selR":2.18},{"year":2026,"n":7.0,"clip":106.0,"clipR":5.05,"sel":281.94,"selR":4.03}],"cost":[{"news_spread":0.3,"slip_frac":0.0,"slip_cap":0.5,"net_usd":425.6,"per_event_usd":3.94,"per_event_R":1.31,"profit_factor":3.14,"event_winrate":67.6,"max_dd_usd":21.04},{"news_spread":0.3,"slip_frac":0.1,"slip_cap":2.0,"net_usd":241.13,"per_event_usd":2.23,"per_event_R":0.74,"profit_factor":1.89,"event_winrate":53.7,"max_dd_usd":48.88},{"news_spread":0.3,"slip_frac":0.25,"slip_cap":5.0,"net_usd":10.89,"per_event_usd":0.1,"per_event_R":0.03,"profit_factor":1.03,"event_winrate":46.3,"max_dd_usd":145.1},{"news_spread":0.3,"slip_frac":0.5,"slip_cap":10.0,"net_usd":-421.02,"per_event_usd":-3.9,"per_event_R":-1.3,"profit_factor":0.36,"event_winrate":32.4,"max_dd_usd":493.81},{"news_spread":0.8,"slip_frac":0.0,"slip_cap":0.5,"net_usd":372.23,"per_event_usd":3.45,"per_event_R":1.15,"profit_factor":2.53,"event_winrate":62.0,"max_dd_usd":23.97},{"news_spread":0.8,"slip_frac":0.1,"slip_cap":2.0,"net_usd":187.81,"per_event_usd":1.74,"per_event_R":0.58,"profit_factor":1.58,"event_winrate":50.0,"max_dd_usd":59.5},{"news_spread":0.8,"slip_frac":0.25,"slip_cap":5.0,"net_usd":-59.3,"per_event_usd":-0.55,"per_event_R":-0.18,"profit_factor":0.87,"event_winrate":41.7,"max_dd_usd":193.67},{"news_spread":0.8,"slip_frac":0.5,"slip_cap":10.0,"net_usd":-532.91,"per_event_usd":-4.93,"per_event_R":-1.64,"profit_factor":0.3,"event_winrate":29.6,"max_dd_usd":575.13},{"news_spread":1.5,"slip_frac":0.0,"slip_cap":0.5,"net_usd":203.23,"per_event_usd":1.88,"per_event_R":0.63,"profit_factor":1.55,"event_winrate":46.3,"max_dd_usd":80.1},{"news_spread":1.5,"slip_frac":0.1,"slip_cap":2.0,"net_usd":2.01,"per_event_usd":0.02,"per_event_R":0.01,"profit_factor":1.0,"event_winrate":37.0,"max_dd_usd":170.41},{"news_spread":1.5,"slip_frac":0.25,"slip_cap":5.0,"net_usd":-288.35,"per_event_usd":-2.67,"per_event_R":-0.89,"profit_factor":0.55,"event_winrate":21.3,"max_dd_usd":388.81},{"news_spread":1.5,"slip_frac":0.5,"slip_cap":10.0,"net_usd":-818.43,"per_event_usd":-7.58,"per_event_R":-2.53,"profit_factor":0.2,"event_winrate":13.9,"max_dd_usd":854.85},{"news_spread":3.0,"slip_frac":0.0,"slip_cap":0.5,"net_usd":105.04,"per_event_usd":0.97,"per_event_R":0.32,"profit_factor":1.25,"event_winrate":39.8,"max_dd_usd":131.83},{"news_spread":3.0,"slip_frac":0.1,"slip_cap":2.0,"net_usd":-80.52,"per_event_usd":-0.75,"per_event_R":-0.25,"profit_factor":0.84,"event_winrate":33.3,"max_dd_usd":235.92},{"news_spread":3.0,"slip_frac":0.25,"slip_cap":5.0,"net_usd":-410.86,"per_event_usd":-3.8,"per_event_R":-1.27,"profit_factor":0.43,"event_winrate":17.6,"max_dd_usd":499.77},{"news_spread":3.0,"slip_frac":0.5,"slip_cap":10.0,"net_usd":-907.28,"per_event_usd":-8.4,"per_event_R":-2.8,"profit_factor":0.17,"event_winrate":12.0,"max_dd_usd":944.59}],"candles":[{"t":"12:24","o":4408.2,"h":4408.22,"l":4406.7,"c":4406.87},{"t":"12:25","o":4406.79,"h":4406.85,"l":4404.61,"c":4406.11},{"t":"12:26","o":4405.99,"h":4409.38,"l":4405.81,"c":4408.94},{"t":"12:27","o":4408.89,"h":4413.25,"l":4408.67,"c":4412.85},{"t":"12:28","o":4412.9,"h":4415.83,"l":4411.12,"c":4415.81},{"t":"12:29","o":4415.76,"h":4427.14,"l":4413.94,"c":4427.14},{"t":"12:30","o":4426.62,"h":4432.72,"l":4382.03,"c":4393.98},{"t":"12:31","o":4394.38,"h":4410.03,"l":4387.88,"c":4408.59},{"t":"12:32","o":4408.23,"h":4419.02,"l":4407.3,"c":4417.32},{"t":"12:33","o":4417.53,"h":4423.57,"l":4416.6,"c":4421.64},{"t":"12:34","o":4421.7,"h":4431.8,"l":4421.28,"c":4424.91},{"t":"12:35","o":4425.09,"h":4425.09,"l":4415.59,"c":4416.64},{"t":"12:36","o":4416.76,"h":4422.59,"l":4416.33,"c":4420.73},{"t":"12:37","o":4420.86,"h":4426.85,"l":4420.34,"c":4425.93},{"t":"12:38","o":4426.0,"h":4426.64,"l":4420.28,"c":4424.11},{"t":"12:39","o":4424.05,"h":4429.91,"l":4423.09,"c":4429.02},{"t":"12:40","o":4429.23,"h":4429.23,"l":4423.7,"c":4428.88}],"clip_trades":[{"side":"long","in":4429.88,"out":4424.88,"tin":"12:30","tout":"12:30","pnl":-5.07,"reason":"stop"},{"side":"short","in":4424.68,"out":4399.51,"tin":"12:30","tout":"12:31","pnl":25.1,"reason":"stop"}],"stats":{"clip":{"params":{"dist":0.6,"place_lead":1,"pending_expiry":5,"hedge":true,"sl":3.0,"tp":0.0,"trail":3.0,"trail_start":0.0,"breakeven":0.0,"max_hold":60,"scale":"fixed","vol_lookback":120,"lots":0.01,"risk_usd":0.0,"min_spread":0.16,"news_spread":0.8,"news_window":3,"slip_base":0.05,"slip_range_frac":0.1,"slip_max":2.0,"commission_per_lot_side":3.5},"all":{"events":108,"traded_events":108,"trades":169,"net_usd":187.81,"per_event_usd":1.739,"per_event_R":0.58,"event_winrate":50.0,"trade_winrate":46.2,"profit_factor":1.58,"avg_win":6.56,"avg_loss":-3.56,"best_event":39.03,"worst_event":-8.89,"max_dd_usd":59.5,"t_stat":2.07},"is":{"events":67,"traded_events":67,"trades":101,"net_usd":-20.27,"per_event_usd":-0.302,"per_event_R":-0.101,"event_winrate":46.3,"trade_winrate":41.6,"profit_factor":0.89,"avg_win":4.07,"avg_loss":-3.24,"best_event":12.18,"worst_event":-7.61,"max_dd_usd":59.5,"t_stat":-0.47},"oos":{"events":41,"traded_events":41,"trades":68,"net_usd":208.08,"per_event_usd":5.075,"per_event_R":1.692,"event_winrate":56.1,"trade_winrate":52.9,"profit_factor":2.57,"avg_win":9.46,"avg_loss":-4.14,"best_event":39.03,"worst_event":-8.89,"max_dd_usd":24.11,"t_stat":2.75}},"sel":{"all":{"events":108,"traded_events":93,"trades":121,"net_usd":1922.12,"per_event_usd":17.797,"per_event_R":1.78,"event_winrate":34.3,"trade_winrate":31.4,"profit_factor":2.61,"avg_win":82.04,"avg_loss":-14.4,"best_event":216.95,"worst_event":-43.75,"max_dd_usd":148.91,"t_stat":3.3},"is":{"events":67,"traded_events":58,"trades":79,"net_usd":889.02,"per_event_usd":13.269,"per_event_R":1.327,"event_winrate":29.9,"trade_winrate":25.3,"profit_factor":2.03,"avg_win":87.66,"avg_loss":-14.65,"best_event":216.95,"worst_event":-39.68,"max_dd_usd":148.91,"t_stat":1.96},"oos":{"events":41,"traded_events":35,"trades":42,"net_usd":1033.1,"per_event_usd":25.197,"per_event_R":2.52,"event_winrate":41.5,"trade_winrate":42.9,"profit_factor":4.12,"avg_win":75.8,"avg_loss":-13.81,"best_event":186.17,"worst_event":-43.75,"max_dd_usd":122.03,"t_stat":2.84}},"placebo":{"events":111,"traded_events":111,"trades":180,"net_usd":-154.02,"per_event_usd":-1.388,"per_event_R":-0.463,"event_winrate":28.8,"trade_winrate":31.1,"profit_factor":0.57,"avg_win":3.7,"avg_loss":-2.91,"best_event":24.25,"worst_event":-8.26,"max_dd_usd":155.39,"t_stat":-2.95}},"sweep":{"n":720,"top20_oos_median":2.423,"top20_oos_positive":20,"share_pos_oos":0.874},"pending":{"buy":4427.88,"sell":4426.68}};</script>
+<script>
+const D = window.__DATA__;
+const NS = "http://www.w3.org/2000/svg";
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const el = (t, a = {}, txt) => { const e = document.createElementNS(NS, t);
+  for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; return e; };
+const fmt = (v, d = 2) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(d);
+const tip = document.getElementById("tip");
+function showTip(ev, html) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY - r.height - 10;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y < 8) y = ev.clientY + 18;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => tip.style.opacity = 0;
+
+/* ------------------------------------------------------------------ 1. candles */
+function candles() {
+  const c = D.candles, W = 980, H = 400, m = { t: 18, r: 82, b: 34, l: 14 };
+  const lo = Math.min(...c.map(b => b.l)), hi = Math.max(...c.map(b => b.h));
+  const pad = (hi - lo) * .08;
+  const y = v => m.t + (H - m.t - m.b) * (hi + pad - v) / (hi - lo + 2 * pad);
+  const step = (W - m.l - m.r) / c.length, bw = Math.min(16, step * .58);
+  const x = i => m.l + step * (i + .5);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, role: "img",
+    "aria-label": "แท่งเทียน XAUUSD M1 รอบข่าว 12:30 UTC วันที่ 12 สิงหาคม 2026" });
+
+  const ink3 = cssv("--ink3"), rule = cssv("--rule");
+  for (let k = 0; k <= 4; k++) {
+    const v = lo - pad + (hi - lo + 2 * pad) * k / 4;
+    svg.appendChild(el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v),
+      stroke: rule, "stroke-width": 1 }));
+    svg.appendChild(el("text", { x: W - m.r + 8, y: y(v) + 4, fill: ink3,
+      "font-size": 11 }, v.toFixed(0)));
+  }
+  // pending-order lines, MT5 style
+  [["BUY STOP 0.01", D.pending.buy, -6], ["SELL STOP 0.01", D.pending.sell, 14]]
+    .forEach(([lab, v, dy]) => {
+      const col = cssv("--ink2");
+      svg.appendChild(el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: col,
+        "stroke-width": 1, "stroke-dasharray": "2 4" }));
+      svg.appendChild(el("text", { x: m.l + 4, y: y(v) + dy, fill: col, "font-size": 10.5 },
+        lab + "  " + v.toFixed(2)));
+    });
+
+  c.forEach((b, i) => {
+    const up = b.c >= b.o, col = up ? cssv("--up") : cssv("--down");
+    svg.appendChild(el("line", { x1: x(i), x2: x(i), y1: y(b.h), y2: y(b.l),
+      stroke: col, "stroke-width": 1.6 }));
+    const top = y(Math.max(b.o, b.c)), h = Math.max(1.5, Math.abs(y(b.o) - y(b.c)));
+    const r = el("rect", { x: x(i) - bw / 2, y: top, width: bw, height: h, fill: col, rx: 1 });
+    r.style.cursor = "crosshair";
+    r.addEventListener("mousemove", e => showTip(e,
+      `${b.t} UTC<br>O ${b.o.toFixed(2)}  H ${b.h.toFixed(2)}<br>L ${b.l.toFixed(2)}  C ${b.c.toFixed(2)}<br>ช่วง ${(b.h - b.l).toFixed(2)}`));
+    r.addEventListener("mouseleave", hideTip);
+    svg.appendChild(r);
+    if (i % 2 === 0) svg.appendChild(el("text", { x: x(i), y: H - 12, fill: ink3,
+      "font-size": 10, "text-anchor": "middle" }, b.t));
+  });
+
+  D.clip_trades.forEach(t => {
+    const i = c.findIndex(b => b.t === t.tin), j = c.findIndex(b => b.t === t.tout);
+    const col = t.pnl >= 0 ? cssv("--up") : cssv("--down");
+    const px = x(i) + (t.side === "long" ? -7 : 7);
+    svg.appendChild(el("path", { d: t.side === "long"
+      ? `M${px} ${y(t.in) - 11} l6 11 l-12 0 z` : `M${px} ${y(t.in) + 11} l6 -11 l-12 0 z`,
+      fill: cssv("--ink"), stroke: cssv("--surface"), "stroke-width": 2 }));
+    svg.appendChild(el("text", { x: px + (t.side === "long" ? 12 : -12),
+      y: y(t.in) + (t.side === "long" ? -15 : 23), fill: cssv("--ink"), "font-size": 11,
+      "text-anchor": t.side === "long" ? "start" : "end" },
+      `${t.side === "long" ? "BUY" : "SELL"} ${t.in.toFixed(2)}`));
+    svg.appendChild(el("path", { d: `M${x(j) - 5} ${y(t.out) - 5} l10 10 M${x(j) + 5} ${y(t.out) - 5} l-10 10`,
+      stroke: col, "stroke-width": 2.4, fill: "none" }));
+    svg.appendChild(el("text", { x: x(j) + 11, y: y(t.out) + (t.side === "long" ? -9 : 5),
+      fill: col, "font-size": 11.5 }, `${fmt(t.pnl)} USD`));
+  });
+  document.getElementById("candles").appendChild(svg);
+}
+
+/* ------------------------------------------------------------------ 2. equity */
+function equity() {
+  const n = D.events.length, W = 980, H = 360, m = { t: 16, r: 108, b: 40, l: 46 };
+  const cum = a => { let s = 0; return a.map(v => s += v); };
+  const A = cum(D.clip_r), B = cum(D.sel_r);
+  const all = A.concat(B, [0]);
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const y = v => m.t + (H - m.t - m.b) * (hi - v) / (hi - lo);
+  const x = i => m.l + (W - m.l - m.r) * i / (n - 1);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, role: "img",
+    "aria-label": "กำไรสะสมเป็น R ของสองชุดพารามิเตอร์ ตลอด 108 ครั้งของข่าว NFP" });
+  const ink3 = cssv("--ink3"), rule = cssv("--rule");
+
+  const stepR = Math.ceil((hi - lo) / 5 / 25) * 25;
+  for (let v = Math.ceil(lo / stepR) * stepR; v <= hi; v += stepR) {
+    svg.appendChild(el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v),
+      stroke: v === 0 ? cssv("--rule2") : rule, "stroke-width": 1 }));
+    svg.appendChild(el("text", { x: m.l - 8, y: y(v) + 4, fill: ink3, "font-size": 11,
+      "text-anchor": "end" }, v + "R"));
+  }
+  let prevY = null;
+  D.events.forEach((e, i) => {
+    const yr = e.slice(0, 4);
+    if (yr !== prevY && yr % 2 === 1) {
+      svg.appendChild(el("text", { x: x(i), y: H - 12, fill: ink3, "font-size": 10.5,
+        "text-anchor": "middle" }, yr));
+    }
+    prevY = yr;
+  });
+  const splitI = D.events.findIndex(e => e >= "2023-01-01");
+  svg.appendChild(el("line", { x1: x(splitI), x2: x(splitI), y1: m.t, y2: H - m.b,
+    stroke: cssv("--rule2"), "stroke-width": 1, "stroke-dasharray": "4 4" }));
+  svg.appendChild(el("text", { x: x(splitI) + 6, y: m.t + 12, fill: ink3, "font-size": 10.5 },
+    "out-of-sample →"));
+
+  [[B, cssv("--blue"), "สเกลตามผันผวน"], [A, cssv("--gold"), "ตามคลิป"]].forEach(([s, col, lab]) => {
+    svg.appendChild(el("path", { d: s.map((v, i) => (i ? "L" : "M") + x(i) + " " + y(v)).join(" "),
+      fill: "none", stroke: col, "stroke-width": 2, "stroke-linejoin": "round" }));
+    svg.appendChild(el("circle", { cx: x(n - 1), cy: y(s[n - 1]), r: 3.5, fill: col,
+      stroke: cssv("--surface"), "stroke-width": 2 }));
+    svg.appendChild(el("text", { x: W - m.r + 9, y: y(s[n - 1]) + 4, fill: col,
+      "font-size": 11.5 }, fmt(s[n - 1], 0) + "R"));
+    svg.appendChild(el("text", { x: W - m.r + 9, y: y(s[n - 1]) + 18, fill: ink3,
+      "font-size": 10 }, lab));
+  });
+
+  const hair = el("line", { x1: 0, x2: 0, y1: m.t, y2: H - m.b, stroke: cssv("--rule2"),
+    "stroke-width": 1, opacity: 0 });
+  svg.appendChild(hair);
+  const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b,
+    fill: "transparent" });
+  hit.style.cursor = "crosshair";
+  hit.addEventListener("mousemove", ev => {
+    const bb = svg.getBoundingClientRect();
+    const px = (ev.clientX - bb.left) / bb.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.round((px - m.l) / (W - m.l - m.r) * (n - 1))));
+    hair.setAttribute("x1", x(i)); hair.setAttribute("x2", x(i)); hair.setAttribute("opacity", 1);
+    showTip(ev, `${D.events[i]}<br>ตามคลิป ${fmt(D.clip_r[i])}R · สะสม ${fmt(A[i], 1)}R` +
+      `<br>สเกลผันผวน ${fmt(D.sel_r[i])}R · สะสม ${fmt(B[i], 1)}R`);
+  });
+  hit.addEventListener("mouseleave", () => { hair.setAttribute("opacity", 0); hideTip(); });
+  svg.appendChild(hit);
+  document.getElementById("equity").appendChild(svg);
+}
+
+/* ------------------------------------------------------------------ 3. cost grid */
+function cost() {
+  const rows = [0.3, 0.8, 1.5, 3.0], cols = [0, 0.1, 0.25, 0.5];
+  const W = 940, cw = 195, ch = 66, m = { t: 42, l: 158 };
+  const H = m.t + rows.length * ch + 34;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, role: "img",
+    "aria-label": "ตารางความไวต่อต้นทุน: กำไรสุทธิตามสเปรดข่าวและ slippage" });
+  const ink = cssv("--ink"), ink3 = cssv("--ink3");
+  const max = Math.max(...D.cost.map(r => Math.abs(r.net_usd)));
+  const surf = cssv("--surface");
+  cols.forEach((c, j) => svg.appendChild(el("text", {
+    x: m.l + cw * j + cw / 2, y: 20, fill: ink3, "font-size": 11, "text-anchor": "middle" },
+    c === 0 ? "ไม่มี slip" : "slip " + (c * 100) + "%")));
+  svg.appendChild(el("text", { x: m.l - 12, y: 20, fill: ink3, "font-size": 11,
+    "text-anchor": "end" }, "สเปรดข่าว ↓ / slippage →"));
+
+  rows.forEach((r, i) => {
+    svg.appendChild(el("text", { x: m.l - 12, y: m.t + ch * i + ch / 2 + 4, fill: ink3,
+      "font-size": 11.5, "text-anchor": "end" }, r.toFixed(2) + " USD"));
+    cols.forEach((c, j) => {
+      const d = D.cost.find(z => z.news_spread === r && z.slip_frac === c);
+      const a = Math.min(.62, Math.abs(d.net_usd) / max * .62 + .06);
+      const base = d.net_usd >= 0 ? cssv("--pos") : cssv("--neg");
+      const g = el("g");
+      g.appendChild(el("rect", { x: m.l + cw * j + 1, y: m.t + ch * i + 1,
+        width: cw - 2, height: ch - 2, fill: base, "fill-opacity": a }));
+      const isBase = (r === 0.8 && c === 0.1);
+      if (isBase) g.appendChild(el("rect", { x: m.l + cw * j + 1, y: m.t + ch * i + 1,
+        width: cw - 2, height: ch - 2, fill: "none", stroke: ink, "stroke-width": 2 }));
+      g.appendChild(el("text", { x: m.l + cw * j + cw / 2, y: m.t + ch * i + 27,
+        fill: ink, "font-size": 15, "font-weight": 700, "text-anchor": "middle" },
+        fmt(d.net_usd, 0)));
+      g.appendChild(el("text", { x: m.l + cw * j + cw / 2, y: m.t + ch * i + 45,
+        fill: ink, "font-size": 10.5, "text-anchor": "middle", opacity: .72 },
+        "PF " + d.profit_factor.toFixed(2)));
+      g.style.cursor = "crosshair";
+      g.addEventListener("mousemove", e => showTip(e,
+        `สเปรดข่าว ${r.toFixed(2)} · slip ${(c * 100).toFixed(0)}% (เพดาน ${d.slip_cap})<br>` +
+        `สุทธิ ${fmt(d.net_usd)} USD · PF ${d.profit_factor}<br>ชนะ ${d.event_winrate}% · DD ${d.max_dd_usd}`));
+      g.addEventListener("mouseleave", hideTip);
+      svg.appendChild(g);
+    });
+  });
+  document.getElementById("cost").appendChild(svg);
+}
+
+/* ------------------------------------------------------------------ 4. tables */
+function bar(v, max, col) {
+  const w = Math.min(50, Math.abs(v) / max * 50);
+  const left = v >= 0 ? 50 : 50 - w;
+  return `<i style="left:${left}%;width:${w}%;background:${col};opacity:.85"></i>`;
+}
+function yearly() {
+  const t = document.getElementById("yearly");
+  const mx = Math.max(...D.yearly.map(r => Math.abs(r.selR)));
+  t.innerHTML = `<thead><tr><th>ปี</th><th>ข่าว</th><th>ตามคลิป USD</th><th>ตามคลิป R</th>
+    <th>สเกลผันผวน USD</th><th>สเกลผันผวน R/ข่าว</th><th></th></tr></thead><tbody>` +
+    D.yearly.map(r => `<tr><td class="mono">${r.year}</td><td class="num">${r.n}</td>
+      <td class="num ${r.clip >= 0 ? "pos" : "neg"}">${fmt(r.clip)}</td>
+      <td class="num ${r.clipR >= 0 ? "pos" : "neg"}">${fmt(r.clipR)}</td>
+      <td class="num ${r.sel >= 0 ? "pos" : "neg"}">${fmt(r.sel)}</td>
+      <td class="num ${r.selR >= 0 ? "pos" : "neg"}">${fmt(r.selR)}</td>
+      <td class="bar-cell">
+        ${bar(r.selR, mx, r.selR >= 0 ? cssv("--pos") : cssv("--neg"))}</td></tr>`).join("") +
+    `<tr class="tr-total"><td>รวม</td><td class="num">108</td>
+      <td class="num pos">+187.81</td><td class="num pos">+0.58</td>
+      <td class="num pos">+1922.12</td><td class="num pos">+1.78</td><td></td></tr></tbody>`;
+}
+function split() {
+  const s = D.stats, t = document.getElementById("split");
+  const row = (lab, o) => `<tr><td>${lab}</td><td class="num">${o.events}</td>
+    <td class="num">${o.trades}</td>
+    <td class="num ${o.per_event_R >= 0 ? "pos" : "neg"}">${fmt(o.per_event_R)}</td>
+    <td class="num">${o.profit_factor}</td><td class="num">${o.event_winrate}%</td>
+    <td class="num">${o.max_dd_usd}</td><td class="num">${o.t_stat}</td></tr>`;
+  t.innerHTML = `<thead><tr><th>ช่วง</th><th>ข่าว</th><th>ไม้</th><th>R/ข่าว</th>
+    <th>PF</th><th>ชนะ</th><th>DD USD</th><th>t</th></tr></thead><tbody>` +
+    `<tr><td colspan="8" style="color:var(--ink3);font-size:.78rem;letter-spacing:.08em;
+      text-transform:uppercase;font-family:'JetBrains Mono',monospace;padding-top:14px">
+      ตามคลิป · 0.01 lot</td></tr>` +
+    row("2017–2022 (in-sample)", s.clip.is) + row("2023–2026 (out-of-sample)", s.clip.oos) +
+    row("ทั้งหมด", s.clip.all) +
+    `<tr><td colspan="8" style="color:var(--ink3);font-size:.78rem;letter-spacing:.08em;
+      text-transform:uppercase;font-family:'JetBrains Mono',monospace;padding-top:18px">
+      สเกลตามผันผวน · เสี่ยง 10 USD/ไม้</td></tr>` +
+    row("2017–2022 (in-sample)", s.sel.is) + row("2023–2026 (out-of-sample)", s.sel.oos) +
+    row("ทั้งหมด", s.sel.all) + `</tbody>`;
+}
+function allTable() {
+  const t = document.getElementById("alltable");
+  t.innerHTML = `<thead><tr><th>วันประกาศ</th><th>ตามคลิป USD</th><th>ตามคลิป R</th>
+    <th>สเกลผันผวน USD</th><th>สเกลผันผวน R</th></tr></thead><tbody>` +
+    D.events.map((e, i) => `<tr><td class="mono">${e}</td>
+      <td class="num ${D.clip_usd[i] >= 0 ? "pos" : "neg"}">${fmt(D.clip_usd[i])}</td>
+      <td class="num">${fmt(D.clip_r[i])}</td>
+      <td class="num ${D.sel_usd[i] >= 0 ? "pos" : "neg"}">${fmt(D.sel_usd[i])}</td>
+      <td class="num">${fmt(D.sel_r[i])}</td></tr>`).join("") + `</tbody>`;
+}
+
+candles(); equity(); cost(); yearly(); split(); allTable();
+addEventListener("scroll", hideTip, { passive: true });
+</script>
