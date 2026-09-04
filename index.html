@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rokudo · Product Attribute Extractor</title>
+<!-- SheetJS: โหลดจากไฟล์ในโฟลเดอร์ vendor/ ก่อน (ใช้งานออฟไลน์ได้) ถ้าไม่มีค่อยดึงจาก CDN -->
+<script src="vendor/xlsx.full.min.js"></script>
+<script>
+  if (typeof XLSX === "undefined") {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
+  }
+</script>
+<style>
+  :root{
+    --bg:#f0f4f8; --card:#fff; --ink:#1e293b; --muted:#64748b; --line:#e2e8f0;
+    --blue:#3b82f6; --green:#16a34a; --red:#dc2626; --amber:#ca8a04; --violet:#7c3aed;
+    --teal:#059669; --pink:#db2777; --dim:#cbd5e1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,"Noto Sans Thai",sans-serif;padding:20px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .card{background:var(--card);border-radius:14px;padding:22px 26px;margin-bottom:16px;
+    box-shadow:0 2px 10px rgba(0,0,0,.07)}
+  h1{margin:0;font-size:20px}
+  .sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+  .rowSB{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .big{font-weight:700;font-size:16px}
+  .lbl{color:var(--muted);font-size:13px;margin:14px 0 8px}
+  label.f{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:600}
+  input[type=text],input[type=password],input[type=number],select,textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+    font-size:13px;font-family:inherit;background:#fff;color:var(--ink)}
+  textarea{line-height:1.55;resize:vertical}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  button{border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;
+    padding:9px 22px;font-family:inherit}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .bBlue{background:var(--blue);color:#fff}
+  .bGreen{background:var(--green);color:#fff}
+  .bRed{background:var(--red);color:#fff;padding:8px 18px;font-size:13px}
+  .bGhost{background:none;border:1px solid var(--dim);color:var(--muted);
+    padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500}
+  .drop{border:2px dashed var(--dim);border-radius:12px;text-align:center;padding:28px 16px;
+    transition:.15s;cursor:pointer}
+  .drop.on{border-color:var(--blue);background:#eff6ff}
+  .bar{background:var(--line);border-radius:10px;height:28px;overflow:hidden;margin-bottom:8px}
+  .fill{background:linear-gradient(90deg,#3b82f6,#60a5fa);height:100%;width:0;transition:width .4s;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;font-size:13px;width:100%}
+  th{text-align:left;padding:7px 10px;font-weight:600;white-space:nowrap;
+    border-bottom:2px solid var(--line);background:#f8fafc}
+  td{padding:5px 10px;white-space:nowrap;border-bottom:1px solid #f1f5f9}
+  thead.dark th{background:#1e293b;color:#fff;border-bottom:none}
+  tbody tr:nth-child(even){background:#f8fafc}
+  .info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;
+    padding:13px 18px;font-size:13px;line-height:1.7}
+  .warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:10px;
+    padding:13px 18px;font-size:13px;line-height:1.7}
+  .err{color:var(--red);font-size:13px;margin-top:10px;white-space:pre-wrap}
+  .log{background:#0f172a;color:#cbd5e1;border-radius:8px;padding:10px 12px;font-size:12px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;max-height:180px;overflow:auto;
+    white-space:pre-wrap;line-height:1.55}
+  details{margin-top:12px}
+  summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600}
+  .hide{display:none}
+  .c-brand{color:#2563eb;font-weight:600}
+  .c-flavor{color:var(--amber)} .c-variant{color:var(--violet)}
+  .c-size{color:var(--teal)} .c-pack{color:var(--red)} .c-color{color:var(--pink)}
+  .dimtxt{color:var(--dim)}
+  .name{max-width:220px;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <h1>🏷️ Rokudo · Product Attribute Extractor</h1>
+    <p class="sub">แบ่ง Name สินค้า → Brand · Product_Type · Flavor · Variant · Size · Pack · Color/Model</p>
+  </div>
+
+  <!-- ── 1. CONFIG ── -->
+  <div class="card">
+    <div class="rowSB"><span class="big">⚙️ ตั้งค่า</span></div>
+    <div class="grid g2">
+      <div>
+        <label class="f" for="key">Anthropic API Key</label>
+        <input id="key" type="password" placeholder="sk-ant-..." autocomplete="off" />
+      </div>
+      <div>
+        <label class="f" for="model">Model</label>
+        <select id="model">
+          <option value="claude-opus-5">Claude Opus 5 — แม่นสุด</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5 — ถูก/เร็วกว่า</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 — ถูกสุด</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid g4" style="margin-top:12px">
+      <div><label class="f" for="batch">สินค้า/รอบ</label><input id="batch" type="number" min="1" max="200" value="50" /></div>
+      <div><label class="f" for="workers">Worker พร้อมกัน</label><input id="workers" type="number" min="1" max="10" value="3" /></div>
+      <div><label class="f" for="retries">Retry สูงสุด</label><input id="retries" type="number" min="1" max="10" value="4" /></div>
+      <div><label class="f" for="effort">Effort</label>
+        <select id="effort"><option value="low">low (เร็ว/ถูก)</option><option value="medium">medium</option><option value="high">high</option></select>
+      </div>
+    </div>
+    <details>
+      <summary>แก้ System Prompt (กฎการแบ่ง attribute)</summary>
+      <textarea id="sys" rows="22" style="margin-top:10px"></textarea>
+      <button class="bGhost" style="margin-top:8px" id="resetSys">↺ คืนค่าเริ่มต้น</button>
+    </details>
+    <p class="sub" style="margin-top:12px">API key เก็บไว้ใน localStorage ของเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ถูกส่งไปที่อื่นนอกจาก api.anthropic.com</p>
+  </div>
+
+  <!-- ── 2. UPLOAD ── -->
+  <div class="card" id="cUpload">
+    <div class="rowSB"><span class="big">📂 อัปโหลดไฟล์</span></div>
+    <div class="drop" id="drop">
+      <div style="font-size:44px">📄</div>
+      <p style="color:var(--muted);margin:10px 0 16px;font-size:15px">
+        ลากไฟล์ <b>.xlsx</b> มาวาง หรือกดเลือกไฟล์
+      </p>
+      <button class="bBlue" type="button" id="pick">เลือกไฟล์ .xlsx</button>
+      <input id="file" type="file" accept=".xlsx,.xls,.csv" class="hide" />
+    </div>
+    <p class="err hide" id="upErr"></p>
+  </div>
+
+  <!-- ── 3. MAPPING ── -->
+  <div class="card hide" id="cMap">
+    <div class="rowSB">
+      <span class="big">🔗 จับคู่คอลัมน์</span>
+      <button class="bGhost" id="reFile">← เปลี่ยนไฟล์</button>
+    </div>
+    <div class="grid g4">
+      <div><label class="f" for="sheet">ชีต</label><select id="sheet"></select></div>
+      <div><label class="f" for="colId">Product ID</label><select id="colId"></select></div>
+      <div><label class="f" for="colName">Name *</label><select id="colName"></select></div>
+      <div><label class="f" for="colCat">Category</label><select id="colCat"></select></div>
+    </div>
+    <p class="lbl" id="mapCount"></p>
+    <div class="scroll"><table id="tPrev"></table></div>
+    <div class="rowSB" style="margin-top:16px;margin-bottom:0">
+      <span class="sub">ตรวจดูตัวอย่างก่อนเริ่ม</span>
+      <button class="bGreen" id="start">▶ เริ่ม Extract</button>
+    </div>
+  </div>
+
+  <!-- ── 4. RUN ── -->
+  <div class="card hide" id="cRun">
+    <div class="rowSB">
+      <span class="big" id="runLabel">⚙️ กำลัง Extract…</span>
+      <button class="bRed" id="stop">⏹ หยุด</button>
+    </div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <p class="lbl" id="runStat"></p>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- ── 5. RESULT ── -->
+  <div class="card hide" id="cDone">
+    <div class="rowSB">
+      <span class="big" id="doneLabel" style="color:var(--green)"></span>
+      <span style="display:flex;gap:8px">
+        <button class="bGreen" id="dl">⬇️ Download .xlsx</button>
+        <button class="bGhost" id="again">← เริ่มใหม่</button>
+      </span>
+    </div>
+    <p class="lbl">Preview 30 รายแรก</p>
+    <div class="scroll"><table id="tRes"></table></div>
+  </div>
+
+  <div class="info">
+    <strong>💡 วิธีใช้</strong> ใส่ API key → อัปโหลด .xlsx → จับคู่คอลัมน์ → เริ่ม Extract → รอ progress → Download<br />
+    ไฟล์ที่ดาวน์โหลดจะมีคอลัมน์เดิมทั้งหมด <b>บวก</b> 7 คอลัมน์ใหม่ต่อท้าย · กด “หยุด” แล้วยังดาวน์โหลดผลที่ทำเสร็จได้
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ─────────── default system prompt ─────────── */
+const SYS_DEFAULT = `คุณเป็น product attribute extractor สำหรับ retail สินค้า
+จาก Name + Category แบ่งออกเป็น 7 fields:
+
+1. brand – แบรนด์สินค้า เช่น พาลโด นีเวีย OPPO UNO
+2. product_type – ชื่อ/ประเภทสินค้า เช่น บะหมี่กึ่งสำเร็จรูปแบบแห้ง เซรั่ม หูฟัง
+3. flavor – รส/กลิ่น เมื่อมี เช่น รสไก่เผ็ด กลิ่นมะนาว ใส่ "-" ถ้าไม่มี
+4. variant – แบบเฉพาะ เช่น เข้มข้น พลัส สูตร1 แบบแห้ง ใส่ "-" ถ้าไม่มี
+5. size – ขนาด เช่น 118g 480ml 1kg 4/128 ใส่ "-" ถ้าไม่มี
+6. pack – จำนวน เช่น x6 แพ็ค3 60เม็ด ใส่ "-" ถ้าไม่มี
+7. color_model – สี หรือ รุ่น เช่น สีขาว Pink TWS01 ใส่ "-" ถ้าไม่มี
+
+กฎสำคัญ:
+- แบ่ง flavor กับ color_model ให้ถูก:
+  - คำเรื่องกลิ่น/รส เช่น "กลิ่นกุหลาบ" "รสมะเขือเทศ" -> flavor
+  - สีของตัวสินค้า เช่น ผ้า ครีม เครื่องใช้ เช่น "ปรับผ้านุ่ม…ฟ้า" -> color_model
+  - Fabric softener สี เช่น "ไฮยีนปรับผ้าเข้มข้นมอร์นิ่งฮัคฟ้า" -> color_model = ฟ้า
+- Prefix PM_ 10_ 50_ CP2_ SWF_ KCG_ TWD_ DN_ ไม่ใช่ brand ให้ข้ามไป
+- UNO เป็น prefix -> brand = UNO
+- Model เช่น M-555 TWS01 HBG-404 G70 -> color_model
+- variant คือ modifier เช่น เข้มข้น พลัส จืด หวาน ไม่ใช่ flavor
+
+ตอบเป็น JSON array เท่านั้น — keys: brand, product_type, flavor, variant, size, pack, color_model
+ต้องมีสมาชิกเท่ากับจำนวนรายการที่ให้มา และเรียง index เดียวกัน
+ไม่มี markdown fence ไม่มีคำอธิบาย`;
+
+const FIELDS = ["brand","product_type","flavor","variant","size","pack","color_model"];
+const HEADS  = ["Brand","Product_Type","Flavor","Variant","Size","Pack","Color_Model"];
+const EMPTY  = Object.fromEntries(FIELDS.map(f => [f, "-"]));
+
+/* ─────────── dom helpers ─────────── */
+const $ = id => document.getElementById(id);
+const show = (el, on) => el.classList.toggle("hide", !on);
+const N = n => Number(n).toLocaleString();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+
+/* ─────────── persisted settings ─────────── */
+const KEYS = ["key","model","batch","workers","retries","effort","sys"];
+function loadCfg(){
+  KEYS.forEach(k => {
+    try { const v = localStorage.getItem("rokudo:" + k); if (v !== null) $(k).value = v; } catch(_){}
+  });
+  if (!$("sys").value) $("sys").value = SYS_DEFAULT;
+}
+function saveCfg(){
+  KEYS.forEach(k => { try { localStorage.setItem("rokudo:" + k, $(k).value); } catch(_){} });
+}
+KEYS.forEach(k => $(k).addEventListener("change", saveCfg));
+$("resetSys").onclick = () => { $("sys").value = SYS_DEFAULT; saveCfg(); };
+loadCfg();
+
+/* ─────────── state ─────────── */
+const state = {
+  wb:null, sheetName:"", rows:[], headers:[],  // rows = data rows (array-of-array), headers = row 0
+  items:[],                                     // [{row, name, cat}]
+  results:[],                                   // aligned with items
+  running:false, stopped:false,
+  done:0, errs:0,
+};
+
+/* ─────────── log ─────────── */
+function logLine(msg){
+  const el = $("log");
+  const t = new Date().toLocaleTimeString("th-TH", { hour12:false });
+  el.textContent += `[${t}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ─────────── file read ─────────── */
+if (typeof XLSX === "undefined") {
+  $("upErr").textContent =
+    "โหลด SheetJS ไม่สำเร็จ — ต้องมีไฟล์ vendor/xlsx.full.min.js อยู่ข้าง ๆ index.html หรือเชื่อมอินเทอร์เน็ตเพื่อดึงจาก CDN";
+  show($("upErr"), true);
+  $("pick").disabled = true;
+}
+
+const drop = $("drop");
+$("pick").onclick = () => $("file").click();
+drop.onclick = e => { if (e.target.id !== "pick") $("file").click(); };
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("on");
+}));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("on");
+}));
+drop.addEventListener("drop", e => { const f = e.dataTransfer.files?.[0]; if (f) readFile(f); });
+$("file").onchange = e => { const f = e.target.files?.[0]; if (f) readFile(f); };
+
+function readFile(f){
+  show($("upErr"), false);
+  const fr = new FileReader();
+  fr.onerror = () => fail("อ่านไฟล์ไม่สำเร็จ");
+  fr.onload = e => {
+    try {
+      state.wb = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
+      $("sheet").innerHTML = state.wb.SheetNames
+        .map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+      loadSheet(state.wb.SheetNames[0]);
+      show($("cUpload"), false);
+      show($("cMap"), true);
+    } catch (ex) { fail("ไฟล์นี้อ่านไม่ได้: " + ex.message); }
+  };
+  fr.readAsArrayBuffer(f);
+  function fail(m){ $("upErr").textContent = m; show($("upErr"), true); }
+}
+
+function loadSheet(name){
+  state.sheetName = name;
+  const aoa = XLSX.utils.sheet_to_json(state.wb.Sheets[name], { header:1, defval:"", blankrows:false });
+  state.headers = (aoa[0] || []).map((h,i) => String(h || "").trim() || `Column ${i+1}`);
+  state.rows = aoa.slice(1);
+  buildColSelects();
+  refreshMapping();
+}
+
+function buildColSelects(){
+  const opts = state.headers.map((h,i) => `<option value="${i}">${esc(h)}</option>`).join("");
+  const none = `<option value="-1">— ไม่มี —</option>`;
+  $("colId").innerHTML   = none + opts;
+  $("colName").innerHTML = opts;
+  $("colCat").innerHTML  = none + opts;
+  const find = (...cands) => state.headers.findIndex(h =>
+    cands.some(c => h.toLowerCase().replace(/[\s_]/g,"").includes(c)));
+  const iId   = find("productid","itemid","sku","barcode","รหัส");
+  const iName = find("name","description","สินค้า","ชื่อ");
+  const iCat  = find("category","cat","หมวด","ประเภท");
+  $("colId").value   = iId   >= 0 ? iId   : (state.headers.length ? 0 : -1);
+  $("colName").value = iName >= 0 ? iName : (state.headers.length > 1 ? 1 : 0);
+  $("colCat").value  = iCat  >= 0 ? iCat  : -1;
+}
+
+["sheet","colId","colName","colCat"].forEach(id => $(id).addEventListener("change", () => {
+  if (id === "sheet") loadSheet($("sheet").value); else refreshMapping();
+}));
+
+function cell(row, idx){
+  if (idx < 0) return "";
+  const v = row?.[idx];
+  return v == null ? "" : String(v).trim();
+}
+
+function refreshMapping(){
+  const cName = +$("colName").value, cId = +$("colId").value, cCat = +$("colCat").value;
+  state.items = [];
+  state.rows.forEach((row, r) => {
+    const name = cell(row, cName);
+    if (name) state.items.push({ row:r, id:cell(row,cId), name, cat:cell(row,cCat) });
+  });
+  $("mapCount").textContent = `พบ ${N(state.items.length)} สินค้าที่มี Name (จาก ${N(state.rows.length)} แถว) · Preview 10 รายแรก`;
+  $("tPrev").innerHTML =
+    `<thead><tr><th>Product ID</th><th>Name</th><th>Category</th></tr></thead><tbody>` +
+    state.items.slice(0,10).map(it =>
+      `<tr><td>${esc(it.id)}</td><td class="name">${esc(it.name)}</td><td>${esc(it.cat)}</td></tr>`).join("") +
+    `</tbody>`;
+  $("start").disabled = state.items.length === 0;
+}
+
+$("reFile").onclick = () => { show($("cMap"), false); show($("cUpload"), true); $("file").value = ""; };
+
+/* ─────────── Claude Messages API ─────────── */
+function buildUserMsg(chunk){
+  return chunk.map((it,i) => `${i}. Name: "${it.name}" | Category: ${it.cat || "-"}`).join("\n")
+    + `\n\nตอบเป็น JSON array ${chunk.length} สมาชิก เรียง index เดียวกัน`;
+}
+
+function extractJson(text){
+  let t = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  const a = t.indexOf("["), b = t.lastIndexOf("]");
+  if (a !== -1 && b > a) t = t.slice(a, b + 1);
+  return JSON.parse(t);
+}
+
+class ApiError extends Error {
+  constructor(status, msg, retryAfter){ super(msg); this.status = status; this.retryAfter = retryAfter; }
+}
+
+async function callClaude(chunk, cfg){
+  const body = {
+    model: cfg.model,
+    max_tokens: 16000,
+    system: cfg.sys,
+    messages: [{ role:"user", content: buildUserMsg(chunk) }],
+  };
+  // effort is not supported on Haiku 4.5 — send output_config only where it is.
+  if (!/haiku/.test(cfg.model)) body.output_config = { effort: cfg.effort };
+
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": cfg.key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!r.ok){
+    let detail = "";
+    try { const j = await r.json(); detail = j?.error?.message || ""; } catch(_){}
+    const ra = parseFloat(r.headers.get("retry-after") || "");
+    throw new ApiError(r.status, `HTTP ${r.status}${detail ? " · " + detail : ""}`, isFinite(ra) ? ra : null);
+  }
+
+  const d = await r.json();
+  if (d.stop_reason === "refusal") throw new ApiError(200, "โมเดลปฏิเสธ batch นี้ (refusal)", null);
+  const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  const arr = extractJson(text);
+  if (!Array.isArray(arr)) throw new ApiError(200, "คำตอบไม่ใช่ JSON array", null);
+  return arr;
+}
+
+function normalize(e){
+  const o = { ...EMPTY };
+  if (e && typeof e === "object")
+    for (const f of FIELDS){
+      const v = e[f];
+      o[f] = (v == null || String(v).trim() === "") ? "-" : String(v).trim();
+    }
+  return o;
+}
+
+/* ─────────── run ─────────── */
+$("start").onclick = run;
+$("stop").onclick  = () => { state.stopped = true; logLine("ผู้ใช้กดหยุด — รอ worker ที่ค้างอยู่จบก่อน…"); };
+
+async function run(){
+  const cfg = {
+    key: $("key").value.trim(),
+    model: $("model").value,
+    sys: $("sys").value.trim() || SYS_DEFAULT,
+    effort: $("effort").value,
+    batch: Math.max(1, +$("batch").value || 50),
+    workers: Math.max(1, +$("workers").value || 3),
+    retries: Math.max(1, +$("retries").value || 4),
+  };
+  if (!cfg.key){ alert("ใส่ Anthropic API Key ก่อนครับ"); $("key").focus(); return; }
+  saveCfg();
+
+  Object.assign(state, {
+    running:true, stopped:false, done:0, errs:0,
+    results: new Array(state.items.length).fill(null),
+  });
+  $("log").textContent = "";
+  show($("cMap"), false); show($("cDone"), false); show($("cRun"), true);
+  $("runLabel").textContent = "⚙️ กำลัง Extract…";
+  show($("stop"), true);
+  paint();
+  logLine(`เริ่ม ${N(state.items.length)} สินค้า · model=${cfg.model} · batch=${cfg.batch} · workers=${cfg.workers}`);
+
+  const batches = [];
+  for (let i = 0; i < state.items.length; i += cfg.batch)
+    batches.push({ start:i, chunk: state.items.slice(i, i + cfg.batch) });
+
+  let ptr = 0;
+  const worker = async () => {
+    while (ptr < batches.length && !state.stopped){
+      const { start, chunk } = batches[ptr++];
+      let left = cfg.retries, ok = false;
+      while (left > 0 && !ok && !state.stopped){
+        try {
+          const arr = await callClaude(chunk, cfg);
+          chunk.forEach((_, j) => { state.results[start + j] = normalize(arr[j]); });
+          ok = true;
+        } catch (ex) {
+          const st = ex.status;
+          if (st === 401 || st === 403){ state.stopped = true; logLine(`❌ ${ex.message} — ตรวจ API key`); break; }
+          if (st === 400){ logLine(`❌ batch ${start}: ${ex.message} (ไม่ retry)`); break; }
+          left--;
+          const wait = st === 429 || st === 529
+            ? (ex.retryAfter ? ex.retryAfter * 1000 : 30000)
+            : 2000 * Math.pow(2, cfg.retries - left - 1);
+          logLine(`⚠️ batch ${start}: ${ex.message} · เหลือ retry ${left} · รอ ${Math.round(wait/1000)}s`);
+          if (left > 0) await sleep(wait);
+        }
+      }
+      if (!ok){
+        chunk.forEach((_, j) => { state.results[start + j] = { ...EMPTY, brand:"ERROR" }; });
+        state.errs += chunk.length;
+      }
+      state.done += chunk.length;
+      paint();
+    }
+  };
+
+  await Promise.all(Array.from({ length: cfg.workers }, worker));
+
+  state.results = state.results.map(r => r || { ...EMPTY });
+  state.running = false;
+  show($("stop"), false);
+  $("runLabel").textContent = state.stopped ? "⏸️ หยุดแล้ว" : "✅ Extract จบแล้ว";
+  logLine(state.stopped ? "หยุดแล้ว — ผลที่ทำเสร็จยังดาวน์โหลดได้" : "เสร็จทั้งหมด");
+  finish();
+}
+
+function paint(){
+  const total = state.items.length || 1;
+  const pct = Math.round((state.done / total) * 100);
+  $("fill").style.width = pct + "%";
+  $("fill").textContent = pct > 5 ? pct + "%" : "";
+  $("runStat").innerHTML = `${N(state.done)} / ${N(state.items.length)} สินค้า` +
+    (state.errs ? ` · <span style="color:var(--red)">Error ${N(state.errs)}</span>` : "");
+}
+
+function finish(){
+  show($("cDone"), true);
+  const okCount = state.results.filter(r => r.brand !== "ERROR").length;
+  $("doneLabel").textContent = `🎉 สำเร็จ ${N(okCount)} / ${N(state.items.length)} สินค้า`;
+  const cells = e => [
+    `<td class="c-brand">${esc(e.brand)}</td>`,
+    `<td>${esc(e.product_type)}</td>`,
+    ...["flavor","variant","size","pack","color_model"].map((f,i) =>
+      `<td class="${e[f] === "-" ? "dimtxt" : ["c-flavor","c-variant","c-size","c-pack","c-color"][i]}">${esc(e[f])}</td>`),
+  ].join("");
+  $("tRes").innerHTML =
+    `<thead class="dark"><tr>${["Product ID","Name","Category",...HEADS]
+      .map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>` +
+    state.results.slice(0,30).map((e,i) => {
+      const it = state.items[i] || {};
+      return `<tr><td>${esc(it.id)}</td><td class="name">${esc(it.name)}</td><td>${esc(it.cat)}</td>${cells(e)}</tr>`;
+    }).join("") + `</tbody>`;
+}
+
+/* ─────────── export ─────────── */
+$("dl").onclick = () => {
+  const byRow = new Map();
+  state.items.forEach((it,i) => byRow.set(it.row, state.results[i] || EMPTY));
+  const aoa = [[...state.headers, ...HEADS]];
+  state.rows.forEach((row, r) => {
+    const e = byRow.get(r);
+    const base = state.headers.map((_, c) => row?.[c] ?? "");
+    aoa.push([...base, ...(e ? FIELDS.map(f => e[f]) : FIELDS.map(() => ""))]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    ...state.headers.map((h,i) => ({ wch: i === +$("colName").value ? 48 : Math.max(12, Math.min(30, h.length + 4)) })),
+    ...[18,26,18,22,12,10,20].map(w => ({ wch:w })),
+  ];
+  ws["!freeze"] = { xSplit:0, ySplit:1 };
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Attributes");
+  XLSX.writeFile(wb, "Product_Attributes_Output.xlsx");
+};
+
+$("again").onclick = () => {
+  state.items = []; state.results = [];
+  show($("cRun"), false); show($("cDone"), false); show($("cMap"), false);
+  show($("cUpload"), true); $("file").value = "";
+};
+
+window.addEventListener("beforeunload", e => {
+  if (state.running){ e.preventDefault(); e.returnValue = ""; }
+});
+</script>
+</body>
+</html>
